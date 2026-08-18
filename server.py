@@ -26,7 +26,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── Configuration ──
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '') or secrets.token_urlsafe(32)
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '8767746273:AAHspW03yr722PEH0q2OXUJofWBkxLBwfz0').strip()
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'bot_loc_tin_nhan_secret_key_2026').strip()
 PORT = int(os.environ.get('PORT', '10000'))  # Render assigns PORT
 
 # ── Initialize ──
@@ -34,19 +35,57 @@ app = Flask(__name__)
 bot = TelegramBot()
 msg_filter = MessageFilter()
 
-_is_connected = False
+_webhook_registered = False
+
+
+def _ensure_webhook_registered(base_url: str):
+    """Register webhook with Telegram using the actual base URL."""
+    global _webhook_registered
+    if _webhook_registered:
+        return
+
+    bot_token = os.environ.get('BOT_TOKEN', BOT_TOKEN).strip() or BOT_TOKEN
+    if not bot.token:
+        if not bot.connect(bot_token):
+            logger.error('Failed to connect to Telegram bot.')
+            return
+
+    clean_base = base_url.rstrip('/')
+    # Avoid local addresses for Telegram webhook
+    if 'localhost' in clean_base or '127.0.0.1' in clean_base or '0.0.0.0' in clean_base:
+        return
+
+    # Convert http to https for Render public URL if needed
+    if clean_base.startswith('http://'):
+        clean_base = clean_base.replace('http://', 'https://')
+
+    webhook_url = f'{clean_base}/webhook/{WEBHOOK_SECRET}'
+    logger.info('Auto-registering webhook: %s', webhook_url)
+
+    if bot.set_webhook(webhook_url):
+        _webhook_registered = True
+        logger.info('✅ Telegram Webhook registered successfully to: %s', webhook_url)
+    else:
+        logger.error('❌ Failed to set Telegram Webhook.')
 
 
 # ═══════════════════════════════════════════
 # Routes
 # ═══════════════════════════════════════════
 
+@app.before_request
+def auto_register():
+    """Auto-register webhook on any incoming request if not registered yet."""
+    _ensure_webhook_registered(request.host_url)
+
+
 @app.route('/')
 def health():
     """Health check endpoint for Render."""
     return jsonify({
         'status': 'ok',
-        'bot': _is_connected,
+        'bot_connected': bot.token is not None,
+        'webhook_registered': _webhook_registered,
         'name': 'Bot_loc_tin_nhan',
     })
 
