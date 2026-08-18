@@ -189,7 +189,8 @@ def register_webhook():
     """Register webhook with Telegram on startup."""
     global _is_connected
 
-    bot_token = os.environ.get('BOT_TOKEN', '').strip()
+    default_token = '8767746273:AAHspW03yr722PEH0q2OXUJofWBkxLBwfz0'
+    bot_token = os.environ.get('BOT_TOKEN', default_token).strip() or default_token
     render_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip()
 
     if not bot_token:
