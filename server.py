@@ -47,7 +47,7 @@ def health():
     return jsonify({
         'status': 'ok',
         'bot': _is_connected,
-        'name': 'BiBoom Bot - Message Filter',
+        'name': 'Bot_loc_tin_nhan',
     })
 
 
@@ -93,7 +93,7 @@ def _handle_command(chat_id: str, text: str, message: dict):
         first_name = message.get('from', {}).get('first_name', 'bạn')
         reply = (
             f'👋 Xin chào {first_name}!\n\n'
-            f'Tôi là **BiBoom Bot** — bot lọc tin nhắn tự động.\n\n'
+            f'Tôi là **Bot_loc_tin_nhan** — bot lọc tin nhắn tự động.\n\n'
             f'📋 **Cách dùng:**\n'
             f'Gửi hoặc dán tin nhắn có format:\n'
             f'`[17/08/2026 18:16] Mike: nội dung`\n\n'
@@ -109,7 +109,7 @@ def _handle_command(chat_id: str, text: str, message: dict):
 
     elif command == '/help':
         reply = (
-            '📖 **Hướng dẫn sử dụng BiBoom Bot**\n\n'
+            '📖 **Hướng dẫn sử dụng Bot_loc_tin_nhan**\n\n'
             '**Lọc tin nhắn:**\n'
             'Dán tin nhắn có timestamp vào chat, bot sẽ tự động lọc.\n\n'
             '**Ví dụ input:**\n'

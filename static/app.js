@@ -1,5 +1,5 @@
 /**
- * BiBoom Bot — Frontend Application
+ * Bot_loc_tin_nhan — Frontend Application
  *
  * Handles:
  * - Message filtering via API

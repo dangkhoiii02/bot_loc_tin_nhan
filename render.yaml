@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: biboom-bot
+    name: bot-loc-tin-nhan
     runtime: docker
     plan: free
     healthCheckPath: /
@@ -10,5 +10,5 @@ services:
       - key: RENDER_EXTERNAL_URL
         fromService:
           type: web
-          name: biboom-bot
+          name: bot-loc-tin-nhan
           property: url
