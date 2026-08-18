@@ -29,44 +29,48 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '8767746273:AAHspW03yr722PEH0q2OXUJofWBkxLBwfz0').strip()
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'bot_loc_tin_nhan_secret_key_2026').strip()
 PORT = int(os.environ.get('PORT', '10000'))  # Render assigns PORT
+DEFAULT_RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://bot-loc-tin-nhan.onrender.com').strip()
 
 # ── Initialize ──
 app = Flask(__name__)
 bot = TelegramBot()
 msg_filter = MessageFilter()
 
-_webhook_registered = False
+_is_connected = False
 
 
-def _ensure_webhook_registered(base_url: str):
-    """Register webhook with Telegram using the actual base URL."""
-    global _webhook_registered
-    if _webhook_registered:
-        return
+def _register_bot_webhook(domain: str = None):
+    """Register webhook URL with Telegram API."""
+    global _is_connected
 
-    bot_token = os.environ.get('BOT_TOKEN', BOT_TOKEN).strip() or BOT_TOKEN
+    token = os.environ.get('BOT_TOKEN', BOT_TOKEN).strip() or BOT_TOKEN
+    target_url = (domain or os.environ.get('RENDER_EXTERNAL_URL', DEFAULT_RENDER_URL)).strip().rstrip('/')
+
+    if not target_url.startswith('https://'):
+        if target_url.startswith('http://'):
+            target_url = target_url.replace('http://', 'https://')
+        else:
+            target_url = f'https://{target_url}'
+
+    # Don't register local addresses with Telegram
+    if 'localhost' in target_url or '127.0.0.1' in target_url or '0.0.0.0' in target_url:
+        return False
+
+    webhook_endpoint = f'{target_url}/webhook/{WEBHOOK_SECRET}'
+    logger.info('Registering Telegram Webhook: %s', webhook_endpoint)
+
     if not bot.token:
-        if not bot.connect(bot_token):
-            logger.error('Failed to connect to Telegram bot.')
-            return
+        if not bot.connect(token):
+            logger.error('Failed to connect to Telegram API.')
+            return False
 
-    clean_base = base_url.rstrip('/')
-    # Avoid local addresses for Telegram webhook
-    if 'localhost' in clean_base or '127.0.0.1' in clean_base or '0.0.0.0' in clean_base:
-        return
-
-    # Convert http to https for Render public URL if needed
-    if clean_base.startswith('http://'):
-        clean_base = clean_base.replace('http://', 'https://')
-
-    webhook_url = f'{clean_base}/webhook/{WEBHOOK_SECRET}'
-    logger.info('Auto-registering webhook: %s', webhook_url)
-
-    if bot.set_webhook(webhook_url):
-        _webhook_registered = True
-        logger.info('✅ Telegram Webhook registered successfully to: %s', webhook_url)
+    if bot.set_webhook(webhook_endpoint):
+        _is_connected = True
+        logger.info('✅ Telegram Webhook successfully set to: %s', webhook_endpoint)
+        return True
     else:
         logger.error('❌ Failed to set Telegram Webhook.')
+        return False
 
 
 # ═══════════════════════════════════════════
@@ -74,9 +78,13 @@ def _ensure_webhook_registered(base_url: str):
 # ═══════════════════════════════════════════
 
 @app.before_request
-def auto_register():
-    """Auto-register webhook on any incoming request if not registered yet."""
-    _ensure_webhook_registered(request.host_url)
+def ensure_webhook():
+    """Ensure webhook is registered on first incoming HTTP request."""
+    global _is_connected
+    if not _is_connected:
+        host = request.headers.get('X-Forwarded-Host') or request.host
+        if host and 'localhost' not in host and '127.0.0.1' not in host:
+            _register_bot_webhook(f'https://{host}')
 
 
 @app.route('/')
@@ -85,13 +93,14 @@ def health():
     return jsonify({
         'status': 'ok',
         'bot_connected': bot.token is not None,
-        'webhook_registered': _webhook_registered,
+        'webhook_registered': _is_connected,
         'name': 'Bot_loc_tin_nhan',
     })
 
 
+@app.route('/webhook', methods=['POST'])
 @app.route(f'/webhook/{WEBHOOK_SECRET}', methods=['POST'])
-def handle_webhook():
+def handle_webhook(secret=None):
     """Handle incoming Telegram webhook updates."""
     try:
         update = request.get_json(force=True, silent=True)
@@ -217,50 +226,10 @@ def _handle_filter(chat_id: str, text: str):
             reply += stats
 
         bot.send_message(chat_id, reply)
-    # If no result, don't reply (could be normal chat in groups)
 
 
-# ═══════════════════════════════════════════
-# Startup — Register Webhook
-# ═══════════════════════════════════════════
-
-def register_webhook():
-    """Register webhook with Telegram on startup."""
-    global _is_connected
-
-    default_token = '8767746273:AAHspW03yr722PEH0q2OXUJofWBkxLBwfz0'
-    bot_token = os.environ.get('BOT_TOKEN', default_token).strip() or default_token
-    render_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip()
-
-    if not bot_token:
-        logger.error('BOT_TOKEN not set! Set it in Environment Variables on Render dashboard.')
-        return False
-
-    # Connect to bot
-    if not bot.connect(bot_token):
-        logger.error('Failed to connect to Telegram bot. Check BOT_TOKEN.')
-        return False
-
-    # Build webhook URL
-    if render_url:
-        webhook_url = f'{render_url}/webhook/{WEBHOOK_SECRET}'
-    else:
-        logger.warning('RENDER_EXTERNAL_URL not set yet. Will register webhook when URL is available.')
-        _is_connected = True
-        return True
-
-    # Register webhook
-    if bot.set_webhook(webhook_url):
-        _is_connected = True
-        logger.info('✅ Bot online! Webhook: %s', webhook_url)
-        return True
-    else:
-        logger.error('Failed to register webhook.')
-        return False
-
-
-# Register on import (when gunicorn loads)
-register_webhook()
+# Initial registration on module import
+_register_bot_webhook()
 
 
 # ═══════════════════════════════════════════
@@ -268,9 +237,5 @@ register_webhook()
 # ═══════════════════════════════════════════
 
 if __name__ == '__main__':
-    if not _is_connected:
-        logger.error('Bot failed to start. Check configuration.')
-    else:
-        logger.info('Starting server on port %d...', PORT)
-
+    logger.info('Starting server on port %d...', PORT)
     app.run(host='0.0.0.0', port=PORT, debug=False)
