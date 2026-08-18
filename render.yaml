@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: biboom-bot
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: BOT_TOKEN
+        sync: false  # Manual input on Render dashboard
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: biboom-bot
+          property: url

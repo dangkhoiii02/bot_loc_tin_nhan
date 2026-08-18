@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bot lọc tin nhắn tự động - Loại bỏ timestamp, username và tin trùng lặp">
+    <title>BiBoom Bot — Lọc Tin Nhắn</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Animated background orbs -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
+                        <path d="M8 12h16M8 16h12M8 20h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                                <stop stop-color="#a855f7"/>
+                                <stop offset="1" stop-color="#06b6d4"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>BiBoom Bot</h1>
+                    <span class="logo-subtitle">Message Filter Engine</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-ghost" id="btn-theme" title="Toggle theme">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main content grid -->
+        <div class="main-grid">
+            <!-- ═══════════════════════════════════════ -->
+            <!-- Filter Zone -->
+            <!-- ═══════════════════════════════════════ -->
+            <section class="card filter-zone">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                        </svg>
+                        <span>Lọc Tin Nhắn</span>
+                    </div>
+                    <div class="filter-options-toggle">
+                        <button class="btn btn-sm btn-ghost" id="btn-toggle-options" title="Tùy chọn lọc">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                            </svg>
+                            <span>Tùy chọn</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Options Panel (collapsible) -->
+                <div class="filter-options" id="filter-options" style="display: none;">
+                    <label class="option-item">
+                        <input type="checkbox" id="opt-remove-timestamp" checked>
+                        <span class="checkmark"></span>
+                        <span>Bỏ timestamp</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="opt-remove-sender" checked>
+                        <span class="checkmark"></span>
+                        <span>Bỏ tên người gửi</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="opt-deduplicate" checked>
+                        <span class="checkmark"></span>
+                        <span>Lọc trùng lặp</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="opt-normalize-ws" checked>
+                        <span class="checkmark"></span>
+                        <span>Chuẩn hóa khoảng trắng</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="opt-case-sensitive" checked>
+                        <span class="checkmark"></span>
+                        <span>Phân biệt HOA/thường</span>
+                    </label>
+                </div>
+
+                <div class="card-body">
+                    <div class="textarea-group">
+                        <div class="textarea-wrapper">
+                            <label for="input-text">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                                Input
+                            </label>
+                            <textarea id="input-text" placeholder="Dán tin nhắn vào đây...&#10;&#10;Ví dụ:&#10;[17/08/2026 18:16] Mike: cuu cái b&#10;[17/08/2026 18:18] Boy Bad: sao b&#10;[17/08/2026 18:18] Mike: tui chạy r b&#10;[17/08/2026 18:16] Mike: cuu cái b" rows="10"></textarea>
+                        </div>
+
+                        <div class="textarea-wrapper">
+                            <label for="output-text">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                Output
+                            </label>
+                            <textarea id="output-text" readonly placeholder="Kết quả sẽ hiển thị ở đây..." rows="10"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="stats-bar" id="stats-bar" style="display: none;">
+                        <div class="stat-item">
+                            <span class="stat-label">Nhập</span>
+                            <span class="stat-value" id="stat-input">0</span>
+                        </div>
+                        <div class="stat-item stat-output">
+                            <span class="stat-label">Xuất</span>
+                            <span class="stat-value" id="stat-output">0</span>
+                        </div>
+                        <div class="stat-item stat-duplicate">
+                            <span class="stat-label">Trùng</span>
+                            <span class="stat-value" id="stat-duplicate">0</span>
+                        </div>
+                        <div class="stat-item stat-invalid">
+                            <span class="stat-label">Lỗi</span>
+                            <span class="stat-value" id="stat-invalid">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="action-bar">
+                        <button class="btn btn-primary" id="btn-filter">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                            </svg>
+                            <span>Lọc tin nhắn</span>
+                            <kbd>Ctrl+Enter</kbd>
+                        </button>
+                        <button class="btn btn-secondary" id="btn-copy" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                        <button class="btn btn-ghost" id="btn-clear">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                            <span>Xóa</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════ -->
+            <!-- Bot Config Zone -->
+            <!-- ═══════════════════════════════════════ -->
+            <section class="card bot-zone">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0110 0v4"/>
+                        </svg>
+                        <span>Cấu Hình Bot</span>
+                    </div>
+                    <div class="status-indicators">
+                        <div class="status-dot" id="status-server" title="Local Server">
+                            <span class="dot dot-offline"></span>
+                            <span class="status-text">Server</span>
+                        </div>
+                        <div class="status-dot" id="status-bot" title="Bot">
+                            <span class="dot dot-offline"></span>
+                            <span class="status-text">Bot</span>
+                        </div>
+                        <div class="status-dot" id="status-ngrok" title="Ngrok">
+                            <span class="dot dot-offline"></span>
+                            <span class="status-text">Ngrok</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="bot-platform">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                                </svg>
+                                Platform
+                            </label>
+                            <select id="bot-platform" class="input">
+                                <option value="telegram" selected>Telegram</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bot-token">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0110 0v4"/>
+                                </svg>
+                                Bot Token
+                            </label>
+                            <input type="password" id="bot-token" class="input" placeholder="Paste your bot token here...">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ngrok-token">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                Ngrok Authtoken
+                            </label>
+                            <input type="password" id="ngrok-token" class="input" placeholder="Paste your ngrok authtoken...">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="webhook-port">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                        <line x1="8" y1="21" x2="16" y2="21"/>
+                                        <line x1="12" y1="17" x2="12" y2="21"/>
+                                    </svg>
+                                    Webhook Port
+                                </label>
+                                <input type="number" id="webhook-port" class="input" value="5001" min="1024" max="65535">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="webhook-secret">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                    </svg>
+                                    Webhook Secret
+                                </label>
+                                <input type="text" id="webhook-secret" class="input" placeholder="Auto-generated if empty">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Public URL display -->
+                    <div class="webhook-url-display" id="webhook-url-display" style="display: none;">
+                        <label>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                            </svg>
+                            Public Webhook URL
+                        </label>
+                        <div class="url-box">
+                            <code id="public-url">—</code>
+                            <button class="btn btn-sm btn-ghost" id="btn-copy-url" title="Copy URL">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bot action buttons -->
+                    <div class="action-bar bot-actions">
+                        <button class="btn btn-success" id="btn-connect">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                            <span>Connect</span>
+                        </button>
+                        <button class="btn btn-danger" id="btn-disconnect" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            </svg>
+                            <span>Disconnect</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>BiBoom Bot v1.0 — Chỉ phục vụ tại 127.0.0.1</span>
+        </footer>
+    </div>
+
+    <!-- Toast notification container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
