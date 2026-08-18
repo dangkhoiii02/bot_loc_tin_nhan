@@ -26,10 +26,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── Configuration ──
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '') or secrets.token_urlsafe(32)
 PORT = int(os.environ.get('PORT', '10000'))  # Render assigns PORT
-RENDER_EXTERNAL_URL = os.environ.get('RENDER_EXTERNAL_URL', '')
 
 # ── Initialize ──
 app = Flask(__name__)
@@ -191,21 +189,23 @@ def register_webhook():
     """Register webhook with Telegram on startup."""
     global _is_connected
 
-    if not BOT_TOKEN:
-        logger.error('BOT_TOKEN not set! Set it in environment variables.')
+    bot_token = os.environ.get('BOT_TOKEN', '').strip()
+    render_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip()
+
+    if not bot_token:
+        logger.error('BOT_TOKEN not set! Set it in Environment Variables on Render dashboard.')
         return False
 
     # Connect to bot
-    if not bot.connect(BOT_TOKEN):
+    if not bot.connect(bot_token):
         logger.error('Failed to connect to Telegram bot. Check BOT_TOKEN.')
         return False
 
     # Build webhook URL
-    if RENDER_EXTERNAL_URL:
-        webhook_url = f'{RENDER_EXTERNAL_URL}/webhook/{WEBHOOK_SECRET}'
+    if render_url:
+        webhook_url = f'{render_url}/webhook/{WEBHOOK_SECRET}'
     else:
-        logger.warning('RENDER_EXTERNAL_URL not set. Webhook registration skipped.')
-        logger.warning('Set it manually or Render will set it automatically.')
+        logger.warning('RENDER_EXTERNAL_URL not set yet. Will register webhook when URL is available.')
         _is_connected = True
         return True
 
